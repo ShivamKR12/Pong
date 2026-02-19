@@ -48,6 +48,14 @@ pyinstaller --onefile --windowed main.py
 
 ```
 
+Or if there is already a .spec file, then
+
+```
+
+pyinstaller main.spec
+
+```
+
 The executable will be created inside the `dist/` folder.
 
 ## Project Structure
