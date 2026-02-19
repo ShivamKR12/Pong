@@ -73,8 +73,20 @@ def ball_animation():
     
     # check if the ball is colliding with any of the paddles or not
     # if it is, then flip the direction of the motion of the ball
-    if ball.colliderect(player) or ball.colliderect(opponent):
-        BALL_SPEED_X *= -1
+    if ball.colliderect(player) and BALL_SPEED_X > 0: 
+        if abs(ball.right - player.left) < 10:
+            BALL_SPEED_X *= -1
+        elif abs(ball.bottom - player.top) < 10 and BALL_SPEED_Y > 10:
+            BALL_SPEED_X *= -1
+        elif abs(ball.top - player.bottom) < 10 and BALL_SPEED_Y < 10:
+            BALL_SPEED_X *= -1
+    if ball.colliderect(opponent) and BALL_SPEED_X < 0:
+        if abs(ball.left - opponent.right) < 10:
+            BALL_SPEED_X *= -1
+        elif abs(ball.bottom - opponent.top) < 10 and BALL_SPEED_Y > 10:
+            BALL_SPEED_X *= -1
+        elif abs(ball.top - opponent.bottom) < 10 and BALL_SPEED_Y < 10:
+            BALL_SPEED_X *= -1
 
 def player_animation():
     player.y += PLAYER_SPEED
