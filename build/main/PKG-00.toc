@@ -1,4 +1,4 @@
-('D:\\Pong\\build\\main\\main.pkg',
+('D:\\Pong\\build\\main\\Pong.pkg',
  {'BINARY': True,
   'DATA': True,
   'EXECUTABLE': True,
