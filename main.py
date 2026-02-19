@@ -2,6 +2,7 @@ import pygame, sys, random
 
 
 # general setup
+pygame.mixer.pre_init(44100, -16, 2, 512)
 pygame.init()
 clock = pygame.time.Clock()
 
@@ -46,6 +47,10 @@ game_font = pygame.font.Font(None, 32)
 # score timer variable
 score_time = True
 
+# importing sounds into the game
+pong_sound = pygame.mixer.Sound('pong.ogg')
+score_sound = pygame.mixer.Sound('sound.ogg')
+
 
 def ball_animation():
     global BALL_SPEED_X, BALL_SPEED_Y, PLAYER_SCORE, OPPONENT_SCORE, score_time
@@ -57,15 +62,18 @@ def ball_animation():
     # check if the ball collides with any of the 4 sides of the screen
     # if they do, then flip their direction of velocity and hence the movement
     if ball.top <= 0 or ball.bottom >= SCREEN_HEIGHT:
+        pygame.mixer.Sound.play(pong_sound)
         BALL_SPEED_Y *= -1
     
     # if the ball hits the left or right sides of the screen, then reset the ball
     if ball.left <= 0:
+        pygame.mixer.Sound.play(score_sound)
         # if the ball hit's the left side of screen, then increase the player's score
         PLAYER_SCORE += 1
         # update the score time
         score_time = pygame.time.get_ticks()
     if ball.right >= SCREEN_WIDTH:
+        pygame.mixer.Sound.play(score_sound)
         # if the ball hit's the right side of screen, then increase the opponent's score
         OPPONENT_SCORE += 1
         # update the score time
@@ -74,6 +82,7 @@ def ball_animation():
     # check if the ball is colliding with any of the paddles or not
     # if it is, then flip the direction of the motion of the ball
     if ball.colliderect(player) and BALL_SPEED_X > 0: 
+        pygame.mixer.Sound.play(pong_sound)
         if abs(ball.right - player.left) < 10:
             BALL_SPEED_X *= -1
         elif abs(ball.bottom - player.top) < 10 and BALL_SPEED_Y > 10:
@@ -81,6 +90,7 @@ def ball_animation():
         elif abs(ball.top - player.bottom) < 10 and BALL_SPEED_Y < 10:
             BALL_SPEED_X *= -1
     if ball.colliderect(opponent) and BALL_SPEED_X < 0:
+        pygame.mixer.Sound.play(pong_sound)
         if abs(ball.left - opponent.right) < 10:
             BALL_SPEED_X *= -1
         elif abs(ball.bottom - opponent.top) < 10 and BALL_SPEED_Y > 10:
