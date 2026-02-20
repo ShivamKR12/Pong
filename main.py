@@ -55,24 +55,27 @@ score_sound = pygame.mixer.Sound('score.ogg')
 def ball_animation():
     global BALL_SPEED_X, BALL_SPEED_Y, PLAYER_SCORE, OPPONENT_SCORE, score_time
 
-    # move the ball to the right each frame, based on BALL_SPEED_X and BALL_SPEED_Y
+    # move the ball each frame, based on BALL_SPEED_X and BALL_SPEED_Y
     ball.x += BALL_SPEED_X
     ball.y += BALL_SPEED_Y
 
     # check if the ball collides with any of the 4 sides of the screen
     # if they do, then flip their direction of velocity and hence the movement
     if ball.top <= 0 or ball.bottom >= SCREEN_HEIGHT:
+        # play the pong sound when the ball hits the top or bottom sides of the screen
         pygame.mixer.Sound.play(pong_sound)
         BALL_SPEED_Y *= -1
     
     # if the ball hits the left or right sides of the screen, then reset the ball
     if ball.left <= 0:
+        # play the score sound when the ball hits the left side of the screen
         pygame.mixer.Sound.play(score_sound)
         # if the ball hit's the left side of screen, then increase the player's score
         PLAYER_SCORE += 1
         # update the score time
         score_time = pygame.time.get_ticks()
     if ball.right >= SCREEN_WIDTH:
+        # play the score sound when the ball hits the right side of the screen
         pygame.mixer.Sound.play(score_sound)
         # if the ball hit's the right side of screen, then increase the opponent's score
         OPPONENT_SCORE += 1
@@ -81,40 +84,70 @@ def ball_animation():
     
     # check if the ball is colliding with any of the paddles or not
     # if it is, then flip the direction of the motion of the ball
+    # ( if the ball is colliding with the player and it is moving to the right,
+    # then perform the below actions, otherwsie do nothing )
     if ball.colliderect(player) and BALL_SPEED_X > 0: 
+        # play the pong sound when the ball hits the player paddle
         pygame.mixer.Sound.play(pong_sound)
+        # check if the player has been hit by the ball from the left
+        # if it has, then flip the direction of the mation of the ball
         if abs(ball.right - player.left) < 10:
             BALL_SPEED_X *= -1
+        # check if the player has been hit by the ball from the top
+        # if it has, then flip the direction of the mation of the ball
         elif abs(ball.bottom - player.top) < 10 and BALL_SPEED_Y > 10:
             BALL_SPEED_X *= -1
+        # check if the player has been hit by the ball from the bottom
+        # if it has, then flip the direction of the mation of the ball
         elif abs(ball.top - player.bottom) < 10 and BALL_SPEED_Y < 10:
             BALL_SPEED_X *= -1
     if ball.colliderect(opponent) and BALL_SPEED_X < 0:
+        # play the pong sound when the ball hits the opponent paddle
         pygame.mixer.Sound.play(pong_sound)
+        # check if the player has been hit by the ball from the left
+        # if it has, then flip the direction of the mation of the ball
         if abs(ball.left - opponent.right) < 10:
             BALL_SPEED_X *= -1
+        # check if the player has been hit by the ball from the top
+        # if it has, then flip the direction of the mation of the ball
         elif abs(ball.bottom - opponent.top) < 10 and BALL_SPEED_Y > 10:
             BALL_SPEED_X *= -1
+        # check if the player has been hit by the ball from the bottom
+        # if it has, then flip the direction of the mation of the ball
         elif abs(ball.top - opponent.bottom) < 10 and BALL_SPEED_Y < 10:
             BALL_SPEED_X *= -1
 
 def player_animation():
+    # move the player forward each frame
     player.y += PLAYER_SPEED
     
     # check if the player is colliding with the top and bottom sides of the window or not
+    # check if the player's top is less than 0, i.e. if it is going off-screen
     if player.top <= 0:
+        # if it is true, then set it's top to be 0, i.e. don't let the player go off-screen
         player.top = 0
+    # check if the player's bottom is greater than the screen height, i.e. if it is going off-screen
     if player.bottom >= SCREEN_HEIGHT:
+        # if it is true, then set it's bottom to be equal to the screen height, 
+        # i.e. don't let the player go off-screen
         player.bottom = SCREEN_HEIGHT
 
 def opponent_ai():
+    # if the oppenent paddle's top is lower than the y position of the ball
     if opponent.top < ball.y:
+        # then move the paddle upwards
         opponent.top += OPPONENT_SPEED
+    # if the oppenent paddle's bottom is greater than the y position of the ball
     if opponent.bottom > ball.y:
+        # then move the paddle upwards
         opponent.bottom -= OPPONENT_SPEED
+    # if the opponent paddle's top is less than 0, i.e. if it is going off-screen
     if opponent.top <= 0:
+        # set it's top to be 0, i.e. don't let the opponent go off-screen
         opponent.top = 0
+    # if the opponent paddle's bottom is greater than the screen height, i.e. if it is going off-screen
     if opponent.bottom >= SCREEN_HEIGHT:
+        # set it's bottom to be equal to the screen height, i.e. don't let the opponent go off-screen
         opponent.bottom = SCREEN_HEIGHT
 
 def ball_restart():
