@@ -48,6 +48,12 @@ python main.py
 - Sound effects for paddle hits and scoring
 - 120 FPS game loop
 
+## Screenshots
+
+![Gameplay 1](screenshots/1.png)
+![Gameplay 2](screenshots/2.png)
+![Gameplay 3](screenshots/3.png)
+
 ## Assets Required
 
 The following asset files must be present in the project directory:
