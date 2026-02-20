@@ -1,6 +1,6 @@
 # Pong (Pygame)
 
-A simple Pong game built using Python and Pygame.
+A Pong game built using Python and Pygame, implemented with an object-oriented and sprite-based architecture.
 
 ## Requirements
 
@@ -38,6 +38,29 @@ python main.py
 - Up Arrow — Move paddle up  
 - Down Arrow — Move paddle down  
 
+## Features
+
+- Object-oriented game structure
+- Sprite-based collision handling
+- AI-controlled opponent
+- Score tracking system
+- Countdown timer after each point
+- Sound effects for paddle hits and scoring
+- 120 FPS game loop
+
+## Assets Required
+
+The following asset files must be present in the project directory:
+
+```
+
+Paddle.png
+Ball.png
+pong.ogg
+score.ogg
+
+```
+
 ## Build Executable (Windows)
 
 To create a standalone `.exe` using PyInstaller:
@@ -48,7 +71,7 @@ pyinstaller --onefile --windowed main.py
 
 ```
 
-Or if there is already a .spec file, then
+If a `.spec` file already exists:
 
 ```
 
@@ -65,10 +88,15 @@ The executable will be created inside the `dist/` folder.
 main.py
 requirements.txt
 README.md
+Paddle.png
+Ball.png
+pong.ogg
+score.ogg
 
 ```
 
 ## Notes
 
-- The opponent paddle uses a simple AI.
-- The game runs at 60 FPS.
+- The game uses `pygame.sprite.Group` for object management.
+- The game flow is managed through a central `GameManager` class.
+- Designed as a refactored and scalable version of earlier procedural implementations.
