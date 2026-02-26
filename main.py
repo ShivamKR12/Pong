@@ -236,7 +236,7 @@ paddle_group = pygame.sprite.Group()
 paddle_group.add(player)
 paddle_group.add(opponent)
 
-ball = Ball('Ball.png',screen_width/2,screen_height/2,4,4,paddle_group)
+ball = Ball('assets/Ball.png',screen_width/2,screen_height/2,4,4,paddle_group)
 ball_sprite = pygame.sprite.GroupSingle()
 ball_sprite.add(ball)
 
