@@ -1,108 +1,160 @@
-# Pong (Pygame)
+# Pong
 
-A Pong game built using Python and Pygame, implemented with an object-oriented and sprite-based architecture.
+A modern implementation of the classic **Pong** arcade game built with **Python** and **Pygame**. This project features an object-oriented architecture, sprite-based collision detection, AI opponent, sound effects, score tracking, and a clean, maintainable codebase.
 
-## Requirements
+> **Repository Structure**
+>
+> This repository contains three independent branches:
+>
+> * **desktop** *(default)* — Native Windows/Desktop version
+> * **web** — Browser version built with `pygbag`
+> * **android** — Android version *(currently in development)*
 
-- Python 3.x
-- pygame-ce (or pygame)
-
-Install dependencies:
-
-```
-
-pip install -r requirements.txt
-
-```
-
-Or manually:
-
-```
-
-pip install pygame-ce
-
-```
-
-## How to Run
-
-From the project directory:
-
-```
-
-python main.py
-
-```
-
-## Controls
-
-- Up Arrow — Move paddle up  
-- Down Arrow — Move paddle down  
+---
 
 ## Features
 
-- Object-oriented game structure
-- Sprite-based collision handling
-- AI-controlled opponent
-- Score tracking system
-- Countdown timer after each point
-- Sound effects for paddle hits and scoring
-- 120 FPS game loop
+* 🏓 Classic Pong gameplay
+* 🤖 AI-controlled opponent
+* 🎮 Smooth paddle controls
+* 💥 Sprite-based collision detection
+* 🔊 Sound effects
+* ⏱️ Countdown before each serve
+* 📊 Live score tracking
+* 🧱 Object-oriented architecture
+* ⚡ 120 FPS gameplay
 
-## Screenshots
+---
 
-![Gameplay 1](screenshots/1.png)
-![Gameplay 2](screenshots/2.png)
-![Gameplay 3](screenshots/3.png)
+## Requirements
 
-## Assets Required
+* Python 3.10+
+* Pygame-ce
 
-The following asset files must be present in the project directory:
+Install the required dependency:
 
+```bash
+pip install -r requirements.txt
 ```
 
-Paddle.png
-Ball.png
-pong.ogg
-score.ogg
+or
 
+```bash
+pip install pygame-ce
 ```
 
-## Build Executable (Windows)
+---
 
-To create a standalone `.exe` using PyInstaller:
+## Running the Game
 
+From the project directory:
+
+```bash
+python main.py
 ```
 
+---
+
+## Controls
+
+| Key | Action           |
+| --- | ---------------- |
+| ↑   | Move paddle up   |
+| ↓   | Move paddle down |
+
+---
+
+## Building the Executable
+
+This project includes a **PyInstaller** specification file.
+
+Build using:
+
+```bash
+pyinstaller Pong.spec
+```
+
+Or generate a new build manually:
+
+```bash
 pyinstaller --onefile --windowed main.py
-
 ```
 
-If a `.spec` file already exists:
+The executable will be created inside:
 
+```text
+dist/
 ```
 
-pyinstaller main.spec
-
-```
-
-The executable will be created inside the `dist/` folder.
+---
 
 ## Project Structure
 
+```text
+Pong
+│
+├── assets/
+│   ├── Ball.png
+│   ├── Paddle.png
+│   ├── pong.ogg
+│   └── score.ogg
+│
+├── screenshots/
+│
+├── main.py
+├── main.spec
+├── requirements.txt
+├── README.md
+└── .gitignore
 ```
 
-main.py
-requirements.txt
-README.md
-Paddle.png
-Ball.png
-pong.ogg
-score.ogg
+---
 
-```
+## Screenshots
 
-## Notes
+![1](screenshots/1.png)
+![2](screenshots/2.png)
+![3](screenshots/3.png)
 
-- The game uses `pygame.sprite.Group` for object management.
-- The game flow is managed through a central `GameManager` class.
-- Designed as a refactored and scalable version of earlier procedural implementations.
+---
+
+## Branches
+
+This repository hosts multiple platform-specific versions of the game.
+
+| Branch      | Description                             |
+| ----------- | --------------------------------------- |
+| **desktop** | Native desktop version for Windows, macOS, and Linux (default branch) |
+| **web**     | Browser version built using `pygbag`      |
+| **android** | Android version *(work in progress)*    |
+
+Each branch evolves independently and has its own:
+
+* README
+* Assets
+* Features
+* GitHub Actions
+* Release builds
+* Commit history
+
+---
+
+## Technologies Used
+
+* Python
+* Pygame
+* PyInstaller
+* Git
+* GitHub Actions
+
+---
+
+## License
+
+This project is released under the [MIT License](LICENSE).
+
+---
+
+## Author
+
+**Shivam Kumar**
