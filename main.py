@@ -1,4 +1,4 @@
-import pygame, sys, random
+import pygame, sys, random, os
 
 
 # The Block class is the most basic sprite in this project.
@@ -208,6 +208,17 @@ class GameManager:
 		screen.blit(opponent_score,opponent_score_rect)
 
 
+# This function is used to find image and font files, 
+# even when the game is packaged into an executable.
+# When running as a script, it uses the current directory.
+# When packaged with PyInstaller (a tool to make .exe files), 
+# it uses the temporary directory where files are extracted.
+def resource_path(relative_path):
+    try: base_path = sys._MEIPASS
+    except Exception: base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
+
+
 # The rest of the code below handles initialization,
 # window setup, global variables, object creation,
 # and the main game loop. The main loop is now very clean
@@ -215,28 +226,35 @@ class GameManager:
 
 pygame.mixer.pre_init(44100,-16,2,512)
 pygame.init()
+
 clock = pygame.time.Clock()
 
-screen_width = 1300
-screen_height = 650
+info = pygame.display.Info()
+screen_width = info.current_w
+screen_height = info.current_h - 60
+
 screen = pygame.display.set_mode((screen_width,screen_height))
 pygame.display.set_caption('Pong')
+pygame.display.set_icon(pygame.image.load(resource_path('assets/icon.png')))
 
 bg_color = pygame.Color('#2F373F')
 accent_color = (27,35,43)
-basic_font = pygame.font.Font('freesansbold.ttf', 32)
-plob_sound = pygame.mixer.Sound("assets/pong.ogg")
-score_sound = pygame.mixer.Sound("assets/score.ogg")
-middle_strip = pygame.Rect(screen_width/2 - 2,0,4,screen_height)
 
-player = Player('assets/Paddle.png',screen_width - 20,screen_height/2,5)
-opponent = Opponent('assets/Paddle.png',20,screen_width/2,5)
+basic_font = pygame.font.Font('freesansbold.ttf', 32)
+
+plob_sound = pygame.mixer.Sound(resource_path('assets/pong.ogg'))
+score_sound = pygame.mixer.Sound(resource_path('assets/score.ogg'))
+
+middle_strip = pygame.Rect(screen_width/2 - 2, 0, 4, screen_height)
+
+player = Player(resource_path('assets/Paddle.png'), screen_width - 20, screen_height/2,5)
+opponent = Opponent(resource_path('assets/Paddle.png'), 20, screen_width/2,5)
 
 paddle_group = pygame.sprite.Group()
 paddle_group.add(player)
 paddle_group.add(opponent)
 
-ball = Ball('assets/Ball.png',screen_width/2,screen_height/2,4,4,paddle_group)
+ball = Ball(resource_path('assets/Ball.png'), screen_width/2, screen_height/2, 4, 4, paddle_group)
 ball_sprite = pygame.sprite.GroupSingle()
 ball_sprite.add(ball)
 
@@ -248,6 +266,9 @@ while True:
 			pygame.quit()
 			sys.exit()
 		if event.type == pygame.KEYDOWN:
+			if event.key == pygame.K_ESCAPE:
+				pygame.quit()
+				sys.exit()
 			if event.key == pygame.K_UP:
 				player.movement -= player.speed
 			if event.key == pygame.K_DOWN:
@@ -257,7 +278,7 @@ while True:
 				player.movement += player.speed
 			if event.key == pygame.K_DOWN:
 				player.movement -= player.speed
-	
+
 	screen.fill(bg_color)
 	pygame.draw.rect(screen,accent_color,middle_strip)
 

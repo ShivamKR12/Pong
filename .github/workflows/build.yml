@@ -53,8 +53,14 @@ jobs:
           pip install pyinstaller
 
       - name: Build with PyInstaller
+        if: runner.os != 'macOS'
         run: |
           pyinstaller --clean --noconfirm Pong.spec
+
+      - name: Build macOS .app with PyInstaller
+        if: runner.os == 'macOS'
+        run: |
+          pyinstaller --clean --noconfirm --windowed Pong.spec
 
       - name: Archive Windows executable
         if: runner.os == 'Windows'
@@ -72,7 +78,7 @@ jobs:
       - name: Archive macOS application
         if: runner.os == 'macOS'
         run: |
-          ditto -c -k --sequesterRsrc --keepParent dist/Pong.app Pong-macOS.zip
+          ditto -c -k --sequesterRsrc --keepParent dist/Pong Pong-macOS.zip
 
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
