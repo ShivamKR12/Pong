@@ -1,5 +1,11 @@
 # Pong
 
+[![Python](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
+[![Pygame-ce](https://img.shields.io/badge/pygame--ce-latest-green.svg)](https://github.com/pygame-community/pygame-ce)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![GitHub Release](https://img.shields.io/github/v/release/ShivamKR12/Pong?include_prereleases&style=flat-square)](https://github.com/ShivamKR12/Pong/releases)
+[![Build Status](https://img.shields.io/github/actions/workflow/status/ShivamKR12/Pong/build.yml?branch=desktop)](https://github.com/ShivamKR12/Pong/actions)
+
 A modern implementation of the classic **Pong** arcade game built with **Python** and **Pygame**. This project features an object-oriented architecture, sprite-based collision detection, AI opponent, sound effects, score tracking, and a clean, maintainable codebase.
 
 > **Repository Structure**
@@ -9,6 +15,21 @@ A modern implementation of the classic **Pong** arcade game built with **Python*
 > * **desktop** *(default)* — Native Windows/Desktop version
 > * **web** — Browser version built with `pygbag`
 > * **android** — Android version *(currently in development)*
+
+---
+
+## Table of Contents
+- [Features](#features)
+- [Requirements](#requirements)
+- [Running the Game](#running-the-game)
+- [Controls](#controls)
+- [Building the Executable](#building-the-executable)
+- [Project Structure](#project-structure)
+- [Screenshots](#screenshots)
+- [Branches](#branches)
+- [Technologies Used](#technologies-used)
+- [License](#license)
+- [Author](#author)
 
 ---
 
