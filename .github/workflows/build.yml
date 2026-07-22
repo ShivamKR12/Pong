@@ -60,7 +60,7 @@ jobs:
       - name: Build macOS .app with PyInstaller
         if: runner.os == 'macOS'
         run: |
-          pyinstaller --clean --noconfirm --windowed Pong.spec
+          pyinstaller --clean --noconfirm Pong.spec
 
       - name: Archive Windows executable
         if: runner.os == 'Windows'
