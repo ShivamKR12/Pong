@@ -7,6 +7,9 @@ on:
     paths-ignore:
       - "README.md"
       - "screenshots/**"
+      - ".gitignore"
+      - "LICENSE"
+      - "requirements.txt"
   workflow_dispatch:
 
 permissions:
