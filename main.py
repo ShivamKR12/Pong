@@ -1,240 +1,454 @@
-import pygame, sys, random, os
+# main.py
+
+import pygame, sys, os, json
+from java import jclass
+
+from config import DIFFICULTY_SETTINGS, USER_SETTINGS
+from button import Button
+from player import Player
+from opponent import Opponent
+from ball import Ball
 
 
-# The Block class is the most basic sprite in this project.
-class Block(pygame.sprite.Sprite):
-	def __init__(self, path, x_pos, y_pos):
-		super().__init__()
-		self.image = pygame.image.load(path)
-		self.rect = self.image.get_rect(center = (x_pos, y_pos))
+class Game:
+    def __init__(self):
+        # Tell Android OS to ignore the back button so it doesn't minimize the app
+        # os.environ["SDL_ANDROID_TRAP_BACK_BUTTON"] = "1"
+        # NOT EVEN THIS IS WORKING !! 
+        
+        pygame.mixer.pre_init(44100, -16, 2, 512)
+        pygame.init()
+        self.clock = pygame.time.Clock()
 
+        # Fixed logical resolution - the engine will scale this to the device screen
+        self.screen_width = 640
+        self.screen_height = 360
+        self.screen = pygame.display.set_mode(
+            (self.screen_width, self.screen_height), 
+            pygame.FULLSCREEN | pygame.SCALED
+        )
+        
+        self.ctx = jclass("org.anvlabs.anvpy.NewActivity").ctx
+        self.ctx.setRequestedOrientation(0)
+        
+        self.PATH = os.path.abspath(".") + "/"
+        self.config_path = self.PATH + "config.json"
+        
+        self.bg_color = pygame.Color('#2F373F')
+        self.accent_color = (27, 35, 43)
+        self.highlight_color = (210, 78, 61)
+        
+        self.plob_sound = pygame.mixer.Sound(self.PATH + "assets/pong.ogg")
+        self.score_sound = pygame.mixer.Sound(self.PATH + "assets/score.ogg")
+        self.click_sound = pygame.mixer.Sound(self.PATH + "assets/click.ogg")
 
-# The Player class represents the paddle controlled by the user.
-class Player(Block):
-	def __init__(self, path, x_pos, y_pos, speed):
-		super().__init__(path, x_pos, y_pos)
-		self.speed = speed
-		self.movement = 0
-		# Track absolute touch targets for smooth mobile navigation
-		self.touch_target_y = None 
+        self.state = "MENU"
+        self.play_mode = "PVE" 
+        self.winner = None
+        
+        self.finger_id_left = None
+        self.finger_id_right = None
+        
+        self.load_settings()
+        self.update_dynamic_settings()
+        self.setup_ui_elements()
 
-	def screen_constrain(self, current_screen_height):
-		if self.rect.top <= 0:
-			self.rect.top = 0
-		if self.rect.bottom >= current_screen_height:
-			self.rect.bottom = current_screen_height
+    def load_settings(self):
+        if os.path.exists(self.config_path):
+            try:
+                with open(self.config_path, "r") as f:
+                    saved_settings = json.load(f)
+                    for key, value in saved_settings.items():
+                        if key in USER_SETTINGS:
+                            USER_SETTINGS[key] = value
+            except Exception as e:
+                print(f"Failed to load settings: {e}")
 
-	def update(self, ball_group, current_screen_height):
-		# If we have an active touch target, step towards it
-		if self.touch_target_y is not None:
-			if abs(self.rect.centery - self.touch_target_y) > self.speed:
-				if self.rect.centery < self.touch_target_y:
-					self.rect.y += self.speed
-				else:
-					self.rect.y -= self.speed
-		else:
-			# Fallback to keyboard-driven delta movement
-			self.rect.y += self.movement
-			
-		self.screen_constrain(current_screen_height)
+    def save_settings(self):
+        try:
+            with open(self.config_path, "w") as f:
+                json.dump(USER_SETTINGS, f, indent=4)
+        except Exception as e:
+            print(f"Failed to save settings: {e}")
 
+    def reset_to_defaults(self):
+        USER_SETTINGS["win_score"] = 5
+        self.save_settings()
+        self.setup_ui_elements()
 
-# The Ball class handles physical interaction and the countdown timer state.
-class Ball(Block):
-	def __init__(self, path, x_pos, y_pos, speed_x, speed_y, paddles):
-		super().__init__(path, x_pos, y_pos)
-		self.speed_x = speed_x * random.choice((-1, 1))
-		self.speed_y = speed_y * random.choice((-1, 1))
-		self.paddles = paddles
-		self.active = False
-		self.score_time = 0
+    def update_dynamic_settings(self):
+        # Universal safe zone margins (8% of screen width) to avoid notches/edges
+        self.margin_left = int(self.screen_width * 0.08)
+        self.margin_right = int(self.screen_width * 0.08)
+        self.play_width = self.screen_width - self.margin_left - self.margin_right
+        self.play_center_x = self.margin_left + (self.play_width / 2)
+        
+        # Fonts are now fixed since the logical resolution is fixed
+        self.font = pygame.font.Font('freesansbold.ttf', 16)
+        self.title_font = pygame.font.Font('freesansbold.ttf', 32)
+        self.settings_font = pygame.font.Font('freesansbold.ttf', 24)
 
-	def update(self, current_screen_width, current_screen_height):
-		if self.active:
-			self.rect.x += self.speed_x
-			self.rect.y += self.speed_y
-			self.collisions(current_screen_height)
-		else:
-			self.restart_counter(current_screen_width, current_screen_height)
+    def setup_ui_elements(self):
+        cw = self.screen_width
+        ch = self.screen_height
+        cx = cw / 2
+        
+        btn_width = cw * 0.2
+        btn_height = ch * 0.12
+        
+        # Main Menu
+        self.btn_mode = Button("MODE: VS AI", cx, ch * 0.30, btn_width + 50, btn_height, self.font, self.accent_color, self.highlight_color)
+        self.btn_easy = Button("EASY", cx, ch * 0.45, btn_width, btn_height, self.font, self.accent_color, self.highlight_color)
+        self.btn_normal = Button("NORMAL", cx, ch * 0.60, btn_width, btn_height, self.font, self.accent_color, self.highlight_color)
+        self.btn_hard = Button("HARD", cx, ch * 0.75, btn_width, btn_height, self.font, self.accent_color, self.highlight_color)
+        self.btn_settings_nav = Button("SETTINGS", cx, ch * 0.90, btn_width, btn_height, self.font, self.accent_color, self.highlight_color)
+        
+        self.btn_menu = Button("MAIN MENU", cx, ch * 0.75, btn_width + 50, btn_height, self.font, self.accent_color, self.highlight_color)
 
-	def collisions(self, current_screen_height):
-		if self.rect.top <= 0 or self.rect.bottom >= current_screen_height:
-			pygame.mixer.Sound.play(plob_sound)
-			self.speed_y *= -1
+        # Settings Menu (Streamlined)
+        self.settings_config = [
+            {
+                "key": "win_score", 
+                "label": "WIN SCORE", 
+                "step": 1, 
+                "min": 1, 
+                "max": 20, 
+                "type": "int"
+            }
+        ]
+        
+        self.setting_ui_elements = []
+        small_btn_w = cw * 0.15
+        small_btn_h = ch * 0.15
+        btn_offset_x = cw * 0.35
+        
+        y_pos = ch * 0.5
+        btn_minus = Button("-", cx - btn_offset_x, y_pos, small_btn_w, small_btn_h, self.settings_font, self.accent_color, self.highlight_color)
+        btn_plus = Button("+", cx + btn_offset_x, y_pos, small_btn_w, small_btn_h, self.settings_font, self.accent_color, self.highlight_color)
+        
+        self.setting_ui_elements.append({
+            "config": self.settings_config[0],
+            "btn_minus": btn_minus,
+            "btn_plus": btn_plus,
+            "y_pos": y_pos
+        })
 
-		if pygame.sprite.spritecollide(self, self.paddles, False):
-			pygame.mixer.Sound.play(plob_sound)
-			collision_paddle = pygame.sprite.spritecollide(self, self.paddles, False)[0].rect
+        self.btn_settings_back = Button("BACK", cx - cw * 0.18, ch * 0.90, cw * 0.3, btn_height, self.font, self.accent_color, self.highlight_color)
+        self.btn_settings_reset = Button("RESET", cx + cw * 0.18, ch * 0.90, cw * 0.3, btn_height, self.font, self.accent_color, self.highlight_color)
 
-			if abs(self.rect.right - collision_paddle.left) < 10 and self.speed_x > 0:
-				self.speed_x *= -1
-			if abs(self.rect.left - collision_paddle.right) < 10 and self.speed_x < 0:
-				self.speed_x *= -1
-			if abs(self.rect.top - collision_paddle.bottom) < 10 and self.speed_y < 0:
-				self.rect.top = collision_paddle.bottom
-				self.speed_y *= -1
-			if abs(self.rect.bottom - collision_paddle.top) < 10 and self.speed_y > 0:
-				self.rect.bottom = collision_paddle.top
-				self.speed_y *= -1
+        # Pause Menu
+        self.btn_resume = Button("RESUME", cx, ch * 0.45, btn_width + 50, btn_height, self.font, self.accent_color, self.highlight_color)
+        self.btn_quit = Button("QUIT TO MENU", cx, ch * 0.65, btn_width + 50, btn_height, self.font, self.accent_color, self.highlight_color)
 
-	def reset_ball(self, current_screen_width, current_screen_height):
-		self.active = False
-		self.speed_x *= random.choice((-1, 1))
-		self.speed_y *= random.choice((-1, 1))
-		self.score_time = pygame.time.get_ticks()
-		self.rect.center = (current_screen_width / 2, current_screen_height / 2)
-		pygame.mixer.Sound.play(score_sound)
+    def start_game(self, difficulty):
+        self.player_score = 0
+        self.opponent_score = 0
+        self.winner = None
+        self.finger_id_left = None
+        self.finger_id_right = None
+        
+        diff_config = DIFFICULTY_SETTINGS[difficulty]
 
-	def restart_counter(self, current_screen_width, current_screen_height):
-		current_time = pygame.time.get_ticks()
-		countdown_number = 3
+        self.paddle_right = Player(
+            self.PATH + 'assets/Paddle.png', 
+            self.screen_width - 20, 
+            self.screen_height / 2, 
+            5, diff_config["instant_drag"], 
+            scale=0.5
+        )
+        
+        if self.play_mode == "PVP":
+            self.paddle_left = Player(
+                self.PATH + 'assets/Paddle.png', 
+                self.margin_left - 35, 
+                self.screen_height / 2, 
+                5, diff_config["instant_drag"], 
+                scale=0.5
+            )
+        else:
+            self.paddle_left = Opponent(
+                self.PATH + 'assets/Paddle.png', 
+                self.margin_left - 35, 
+                self.screen_height / 2, 
+                diff_config["ai_speed"], 
+                diff_config["ai_tolerance"], 
+                scale=0.5
+            )
+        
+        self.paddle_group = pygame.sprite.Group()
+        self.paddle_group.add(self.paddle_right)
+        self.paddle_group.add(self.paddle_left)
 
-		if current_time - self.score_time <= 700:
-			countdown_number = 3
-		if 700 < current_time - self.score_time <= 1400:
-			countdown_number = 2
-		if 1400 < current_time - self.score_time <= 2100:
-			countdown_number = 1
-		if current_time - self.score_time >= 2100:
-			self.active = True
+        self.ball = Ball(
+            self.PATH + 'assets/Ball.png', 
+            self.play_center_x, 
+            self.screen_height / 2, 
+            diff_config, 
+            self.paddle_group, 
+            self.plob_sound, 
+            self.score_sound, 
+            self.font, 
+            self.bg_color, 
+            self.accent_color, 
+            scale=0.5
+        )
+        self.ball_sprite = pygame.sprite.GroupSingle()
+        self.ball_sprite.add(self.ball)
+        
+        self.state = "PLAYING"
 
-		time_counter = basic_font.render(str(countdown_number), True, accent_color)
-		time_counter_rect = time_counter.get_rect(center = (current_screen_width / 2, current_screen_height / 2 + 50))
-		pygame.draw.rect(screen, bg_color, time_counter_rect)
-		screen.blit(time_counter, time_counter_rect)
+    def modify_setting(self, key, step, is_float):
+        if is_float:
+            USER_SETTINGS[key] = round(USER_SETTINGS[key] + step, 1)
+        else:
+            USER_SETTINGS[key] += step
+            
+        self.save_settings()
+        self.setup_ui_elements() 
 
+    def handle_events(self):
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                sys.exit()
 
-# The Opponent class represents the AI paddle.
-class Opponent(Block):
-	def __init__(self, path, x_pos, y_pos, speed):
-		super().__init__(path, x_pos, y_pos)
-		self.speed = speed
+            # Contextual Android Back Button Logic
+            if event.type == pygame.KEYDOWN and event.key == pygame.K_AC_BACK:
+                if self.state == "PLAYING":
+                    self.state = "PAUSED"
+                elif self.state == "PAUSED":
+                    # Pressing back while paused resumes the game
+                    self.state = "PLAYING"
+                    self.finger_id_left = None
+                    self.finger_id_right = None
+                elif self.state in ["SETTINGS", "GAME_OVER"]:
+                    # Pressing back in sub-menus returns to the main menu
+                    self.state = "MENU"
+                elif self.state == "MENU":
+                    # Pressing back on the main menu exits the app
+                    pygame.quit()
+                    sys.exit()
 
-	def update(self, ball_group, current_screen_height):
-		if self.rect.top < ball_group.sprite.rect.y:
-			self.rect.y += self.speed
-		if self.rect.bottom > ball_group.sprite.rect.y:
-			self.rect.y -= self.speed
-		self.constrain(current_screen_height)
+            # Auto-Pause if the system tray is pulled down or app minimizes
+            if event.type == pygame.WINDOWFOCUSLOST or event.type == pygame.APP_WILLENTERBACKGROUND:
+                if self.state == "PLAYING":
+                    self.state = "PAUSED"
+                
+            if event.type == pygame.FINGERDOWN:
+                if self.state == "PLAYING":
+                    py = event.y * self.screen_height
+                    if event.x > 0.5 and self.finger_id_right is None:
+                        self.finger_id_right = event.finger_id
+                        self.paddle_right.touch_target_y = py
+                    elif event.x <= 0.5 and self.finger_id_left is None and self.play_mode == "PVP":
+                        self.finger_id_left = event.finger_id
+                        self.paddle_left.touch_target_y = py
 
-	def constrain(self, current_screen_height):
-		if self.rect.top <= 0: self.rect.top = 0
-		if self.rect.bottom >= current_screen_height: self.rect.bottom = current_screen_height
+            if event.type == pygame.FINGERMOTION:
+                if self.state == "PLAYING":
+                    py = event.y * self.screen_height
+                    if event.finger_id == self.finger_id_right:
+                        self.paddle_right.touch_target_y = py
+                    elif event.finger_id == self.finger_id_left and self.play_mode == "PVP":
+                        self.paddle_left.touch_target_y = py
 
+            if event.type == pygame.FINGERUP:
+                px = event.x * self.screen_width
+                py = event.y * self.screen_height
+                
+                if self.state == "MENU":
+                    if self.btn_mode.check_click(px, py):
+                        pygame.mixer.Sound.play(self.click_sound)
+                        self.play_mode = "PVP" if self.play_mode == "PVE" else "PVE"
+                        mode_text = "MODE: VS PLAYER" if self.play_mode == "PVP" else "MODE: VS AI"
+                        self.btn_mode.update_text(mode_text, self.font, self.highlight_color)
+                    elif self.btn_easy.check_click(px, py):
+                        pygame.mixer.Sound.play(self.click_sound)
+                        self.start_game("EASY")
+                    elif self.btn_normal.check_click(px, py):
+                        pygame.mixer.Sound.play(self.click_sound)
+                        self.start_game("NORMAL")
+                    elif self.btn_hard.check_click(px, py):
+                        pygame.mixer.Sound.play(self.click_sound)
+                        self.start_game("HARD")
+                    elif self.btn_settings_nav.check_click(px, py):
+                        pygame.mixer.Sound.play(self.click_sound)
+                        self.state = "SETTINGS"
+                        
+                elif self.state == "SETTINGS":
+                    if self.btn_settings_back.check_click(px, py):
+                        pygame.mixer.Sound.play(self.click_sound)
+                        self.state = "MENU"
+                        continue
+                        
+                    if self.btn_settings_reset.check_click(px, py):
+                        pygame.mixer.Sound.play(self.click_sound)
+                        self.reset_to_defaults()
+                        continue
+                        
+                    for ui in self.setting_ui_elements:
+                        config = ui["config"]
+                        key = config["key"]
+                        is_float = (config["type"] == "float")
+                        
+                        if ui["btn_minus"].check_click(px, py) and round(USER_SETTINGS[key], 1) > config["min"]:
+                            pygame.mixer.Sound.play(self.click_sound)
+                            self.modify_setting(key, -config["step"], is_float)
+                            
+                        elif ui["btn_plus"].check_click(px, py) and round(USER_SETTINGS[key], 1) < config["max"]:
+                            pygame.mixer.Sound.play(self.click_sound)
+                            self.modify_setting(key, config["step"], is_float)
+                        
+                elif self.state == "GAME_OVER":
+                    if self.btn_menu.check_click(px, py):
+                        pygame.mixer.Sound.play(self.click_sound)
+                        self.state = "MENU"
 
-# The GameManager class ties everything together.
-class GameManager:
-	def __init__(self, ball_group, paddle_group):
-		self.player_score = 0
-		self.opponent_score = 0
-		self.ball_group = ball_group
-		self.paddle_group = paddle_group
+                elif self.state == "PAUSED":
+                    if self.btn_resume.check_click(px, py):
+                        pygame.mixer.Sound.play(self.click_sound)
+                        self.state = "PLAYING"
+                        # Reset touches to prevent paddle jumping
+                        self.finger_id_right = None
+                        self.finger_id_left = None
+                    elif self.btn_quit.check_click(px, py):
+                        pygame.mixer.Sound.play(self.click_sound)
+                        self.state = "MENU"
+                        
+                elif self.state == "PLAYING":
+                    if event.finger_id == self.finger_id_right:
+                        self.finger_id_right = None
+                        self.paddle_right.touch_target_y = None
+                    elif event.finger_id == self.finger_id_left and self.play_mode == "PVP":
+                        self.finger_id_left = None
+                        self.paddle_left.touch_target_y = None
+                        
+                    # Top-middle screen tap to pause manually
+                    if py < self.screen_height * 0.15 and px > self.screen_width * 0.4 and px < self.screen_width * 0.6:
+                        self.state = "PAUSED"
 
-	def run_game(self, current_screen_width, current_screen_height):
-		self.paddle_group.draw(screen)
-		self.ball_group.draw(screen)
+    def check_score(self):
+        winning_score = USER_SETTINGS["win_score"]
+        
+        # Check if the left side of the ball passes the right screen edge
+        if self.ball.rect.left >= self.screen_width:
+            self.opponent_score += 1
+            if self.opponent_score >= winning_score:
+                self.winner = "Player 2" if self.play_mode == "PVP" else "Opponent"
+                self.state = "GAME_OVER"
+            else:
+                self.ball.reset_ball(self.play_center_x, self.screen_height)
+            
+        # Check if the right side of the ball passes the left screen edge
+        if self.ball.rect.right <= 0:
+            self.player_score += 1
+            if self.player_score >= winning_score:
+                self.winner = "Player 1" if self.play_mode == "PVP" else "Player"
+                self.state = "GAME_OVER"
+            else:
+                self.ball.reset_ball(self.play_center_x, self.screen_height)
 
-		# Pass dynamic screen boundaries down to update cycles
-		self.paddle_group.update(self.ball_group, current_screen_height)
-		self.ball_group.update(current_screen_width, current_screen_height)
-		self.check_score(current_screen_width, current_screen_height)
-		self.draw_score(current_screen_width, current_screen_height)
+    def draw_score(self):
+        player_score_text = self.font.render(str(self.player_score), True, self.accent_color)
+        opponent_score_text = self.font.render(str(self.opponent_score), True, self.accent_color)
 
-	def check_score(self, current_screen_width, current_screen_height):
-		if self.ball_group.sprite.rect.right >= current_screen_width:
-			self.opponent_score += 1
-			self.ball_group.sprite.reset_ball(current_screen_width, current_screen_height)
-		if self.ball_group.sprite.rect.left <= 0:
-			self.player_score += 1
-			self.ball_group.sprite.reset_ball(current_screen_width, current_screen_height)
+        player_score_rect = player_score_text.get_rect(midleft=(self.play_center_x + 40, 40))
+        opponent_score_rect = opponent_score_text.get_rect(midright=(self.play_center_x - 40, 40))
 
-	def draw_score(self, current_screen_width, current_screen_height):
-		player_score = basic_font.render(str(self.player_score), True, accent_color)
-		opponent_score = basic_font.render(str(self.opponent_score), True, accent_color)
+        self.screen.blit(player_score_text, player_score_rect)
+        self.screen.blit(opponent_score_text, opponent_score_rect)
 
-		player_score_rect = player_score.get_rect(midleft = (current_screen_width / 2 + 40, current_screen_height / 2))
-		opponent_score_rect = opponent_score.get_rect(midright = (current_screen_width / 2 - 40, current_screen_height / 2))
+    def draw_board(self):
+        self.screen.fill(self.bg_color)
+        middle_strip = pygame.Rect(self.play_center_x - 2, 0, 4, self.screen_height)
+        pygame.draw.rect(self.screen, self.accent_color, middle_strip)
 
-		screen.blit(player_score, player_score_rect)
-		screen.blit(opponent_score, opponent_score_rect)
+    def update(self):
+        if self.state == "PLAYING":
+            self.paddle_group.update(self.ball_sprite, self.screen_height)
+            self.ball.update(self.play_center_x, self.screen_height, self.screen)
+            self.check_score()
 
+    def render(self):
+        self.screen.fill(self.bg_color)
+        true_center_x = self.screen_width / 2
+        
+        if self.state == "MENU":
+            title_text = self.title_font.render("PONG", True, self.highlight_color)
+            title_rect = title_text.get_rect(center=(true_center_x, self.screen_height * 0.15))
+            self.screen.blit(title_text, title_rect)
+            
+            self.btn_mode.draw(self.screen)
+            self.btn_easy.draw(self.screen)
+            self.btn_normal.draw(self.screen)
+            self.btn_hard.draw(self.screen)
+            self.btn_settings_nav.draw(self.screen)
+            
+        elif self.state == "SETTINGS":
+            title_text = self.title_font.render("SETTINGS", True, self.highlight_color)
+            title_rect = title_text.get_rect(center=(true_center_x, self.screen_height * 0.15))
+            self.screen.blit(title_text, title_rect)
+            
+            for ui in self.setting_ui_elements:
+                ui["btn_minus"].draw(self.screen)
+                ui["btn_plus"].draw(self.screen)
+                
+                key = ui["config"]["key"]
+                display_val = int(USER_SETTINGS[key]) if ui["config"]["type"] == "int" else USER_SETTINGS[key]
+                label_str = f"{ui['config']['label']}: {display_val}"
+                
+                label_text = self.settings_font.render(label_str, True, self.highlight_color)
+                label_rect = label_text.get_rect(center=(true_center_x, ui["y_pos"]))
+                self.screen.blit(label_text, label_rect)
+                
+            self.btn_settings_back.draw(self.screen)
+            self.btn_settings_reset.draw(self.screen)
+            
+        elif self.state == "PLAYING":
+            self.draw_board()
+            self.paddle_group.draw(self.screen)
+            self.ball_sprite.draw(self.screen)
+            self.draw_score()
 
-# Initialization and Window Setup
-pygame.mixer.pre_init(44100, -16, 2, 512)
-pygame.init()
-clock = pygame.time.Clock()
+        elif self.state == "PAUSED":
+            # Draw board in background
+            self.draw_board()
+            self.paddle_group.draw(self.screen)
+            self.ball_sprite.draw(self.screen)
+            self.draw_score()
+            
+            # Semi-transparent overlay
+            overlay = pygame.Surface((self.screen_width, self.screen_height), pygame.SRCALPHA)
+            overlay.fill((0, 0, 0, 150))
+            self.screen.blit(overlay, (0, 0))
+            
+            pause_text = self.title_font.render("PAUSED", True, self.highlight_color)
+            pause_rect = pause_text.get_rect(center=(true_center_x, self.screen_height * 0.20))
+            self.screen.blit(pause_text, pause_rect)
+            
+            self.btn_resume.draw(self.screen)
+            self.btn_quit.draw(self.screen)
+            
+        elif self.state == "GAME_OVER":
+            msg = f"{self.winner.upper()} WINS!" if "Player" in self.winner else "YOU LOSE!"
+            outcome_text = self.title_font.render(msg, True, self.highlight_color)
+            outcome_rect = outcome_text.get_rect(center=(true_center_x, self.screen_height * 0.40))
+            self.screen.blit(outcome_text, outcome_rect)
+            
+            score_text = self.font.render(f"{self.player_score} - {self.opponent_score}", True, self.accent_color)
+            score_rect = score_text.get_rect(center=(true_center_x, self.screen_height * 0.55))
+            self.screen.blit(score_text, score_rect)
+            
+            self.btn_menu.draw(self.screen)
 
-# Starting dimensions (can change dynamically now)
-info = pygame.display.Info()
-screen_width = info.current_w
-screen_height = info.current_h
-screen = pygame.display.set_mode((screen_width, screen_height), pygame.FULLSCREEN)
+    def run(self):
+        while True:
+            self.handle_events()
+            self.update()
+            self.render()
+            pygame.display.flip()
+            self.clock.tick(60)
 
-PATH = os.path.abspath(".") + "/"
-
-bg_color = pygame.Color('#2F373F')
-accent_color = (27, 35, 43)
-basic_font = pygame.font.Font('freesansbold.ttf', 32)
-plob_sound = pygame.mixer.Sound(PATH + "assets/pong.ogg")
-score_sound = pygame.mixer.Sound(PATH + "assets/score.ogg")
-
-# Initial layout positions
-player = Player(PATH + 'assets/Paddle.png', screen_width - 20, screen_height / 2, 5)
-opponent = Opponent(PATH + 'assets/Paddle.png', 20, screen_height / 2, 5)
-
-paddle_group = pygame.sprite.Group()
-paddle_group.add(player)
-paddle_group.add(opponent)
-
-ball = Ball(PATH + 'assets/Ball.png', screen_width / 2, screen_height / 2, 4, 4, paddle_group)
-ball_sprite = pygame.sprite.GroupSingle()
-ball_sprite.add(ball)
-
-game_manager = GameManager(ball_sprite, paddle_group)
-
-# Track active finger ID operating on the right side of the screen
-active_finger_id = None
-
-while True:
-	for event in pygame.event.get():
-		if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_AC_BACK):
-			pygame.quit()
-			sys.exit()
-			
-		# HANDLE SCREEN RESIZING
-		if event.type == pygame.VIDEORESIZE:
-			screen_width, screen_height = event.w, event.h
-			screen = pygame.display.set_mode((screen_width, screen_height), pygame.RESIZABLE)
-			
-			# Snap the elements immediately to their relative positions on resize
-			player.rect.right = screen_width - 20
-			opponent.rect.left = 20
-			if not ball.active:
-				ball.rect.center = (screen_width / 2, screen_height / 2)
-				
-		# Touch Controls
-		if event.type == pygame.FINGERDOWN:
-			if event.x > 0.5 and active_finger_id is None:
-				active_finger_id = event.finger_id
-				player.touch_target_y = event.y * screen_height
-
-		if event.type == pygame.FINGERMOTION:
-			if event.finger_id == active_finger_id:
-				player.touch_target_y = event.y * screen_height
-
-		if event.type == pygame.FINGERUP:
-			if event.finger_id == active_finger_id:
-				active_finger_id = None
-				player.touch_target_y = None
-
-	screen.fill(bg_color)
-	
-	# Render the middle strip line dynamically based on live width/height
-	middle_strip = pygame.Rect(screen_width / 2 - 2, 0, 4, screen_height)
-	pygame.draw.rect(screen, accent_color, middle_strip)
-
-	# Run the game using the current resolution dimensions
-	game_manager.run_game(screen_width, screen_height)
-
-	pygame.display.flip()
-	clock.tick(120)
+if __name__ == "__main__":
+    game = Game()
+    game.run()
