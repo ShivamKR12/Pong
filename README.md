@@ -178,4 +178,4 @@ This project is released under the [MIT License](LICENSE).
 
 ## Author
 
-**Shivam Kumar**
+**[Shivam Kumar](https://github.com/ShivamKR12)**

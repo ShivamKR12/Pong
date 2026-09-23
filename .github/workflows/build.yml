@@ -18,7 +18,7 @@ permissions:
 jobs:
   build-desktop:
     name: Build for ${{ matrix.os }}
-    if: github.event_name != 'push' || (!contains(github.event.head_commit.message, '[skip ci]') && !contains(github.event.head_commit.message, '[ci skip]'))
+
 
     runs-on: ${{ matrix.os }}
 
@@ -113,3 +113,30 @@ jobs:
             artifacts/Pong-Windows/Pong-Windows.zip
             artifacts/Pong-Linux/Pong-Linux.tar.gz
             artifacts/Pong-macOS/Pong-macOS.zip
+
+      - name: Setup Butler
+        uses: remarkablegames/setup-butler@v1
+
+      - name: Publish Windows to itch.io via Butler
+        env:
+          BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
+        run: |
+          mkdir -p push_win
+          cp artifacts/Pong-Windows/Pong-Windows.zip push_win/
+          butler push push_win shivamkr12/pong:windows --userversion desktop-v1.0.${{ github.run_number }}
+
+      - name: Publish Linux to itch.io via Butler
+        env:
+          BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
+        run: |
+          mkdir -p push_linux
+          cp artifacts/Pong-Linux/Pong-Linux.tar.gz push_linux/
+          butler push push_linux shivamkr12/pong:linux --userversion desktop-v1.0.${{ github.run_number }}
+
+      - name: Publish macOS to itch.io via Butler
+        env:
+          BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
+        run: |
+          mkdir -p push_mac
+          cp artifacts/Pong-macOS/Pong-macOS.zip push_mac/
+          butler push push_mac shivamkr12/pong:mac --userversion desktop-v1.0.${{ github.run_number }}
