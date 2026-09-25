@@ -5,12 +5,9 @@ on:
     branches:
       - main
     paths:
-      - '**.py'
-      - '**.spec'
-      - '**.ini'
-      - 'requirements.txt'
-      - 'setup.py'
-      - '.github/workflows/*.yml'
+      - 'main.py'
+      - 'Pong.spec'
+      - '.github/workflows/build.yml'
   workflow_dispatch:
 
 permissions:
@@ -19,7 +16,6 @@ permissions:
 jobs:
   build-desktop:
     name: Build for ${{ matrix.os }}
-
 
     runs-on: ${{ matrix.os }}
 
