@@ -3,13 +3,14 @@ name: Build Desktop Executables
 on:
   push:
     branches:
-      - desktop
-    paths-ignore:
-      - "README.md"
-      - "screenshots/**"
-      - ".gitignore"
-      - "LICENSE"
-      - "requirements.txt"
+      - main
+    paths:
+      - '**.py'
+      - '**.spec'
+      - '**.ini'
+      - 'requirements.txt'
+      - 'setup.py'
+      - '.github/workflows/*.yml'
   workflow_dispatch:
 
 permissions:
